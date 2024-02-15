@@ -1,0 +1,11 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "internal/storage/queries/account.sql"
+    schema: "internal/storage/migrations"
+    gen:
+      go:
+        package: "db"
+        out: "internal/storage/database"
+        sql_package: "database/sql"
+        emit_interface: true
