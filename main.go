@@ -53,8 +53,13 @@ func setupAppHandler() http.Handler {
 	return server
 }
 func main() {
-	h := setupAppHandler()
-	log.Fatalln(http.ListenAndServe("localhost:8080", h))
+	/*
+		go func() {
+			h := setupAppHandler()
+			log.Fatalln(http.ListenAndServe("localhost:8080", h))
+		}()
+
+	*/
 }
 
 func initDatabase() (*sql.DB, error) {

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: handle more test cases
 func TestAuthMiddleware(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -38,14 +39,10 @@ func TestAuthMiddleware(t *testing.T) {
 					Method: http.MethodGet,
 					URL:    serverURL,
 				}
+				r.Header = make(http.Header)
 				r.Header.Set("Authorization", "invalid")
 				return r
 			},
-		},
-		{
-			name:           "success - authorized",
-			statusCode:     0,
-			prepareRequest: nil,
 		},
 	}
 	for _, tt := range tests {

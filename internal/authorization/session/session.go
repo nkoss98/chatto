@@ -10,6 +10,8 @@ import (
 	"golang.org/x/crypto/chacha20poly1305"
 )
 
+//go:generate mockgen -package=session -destination=session.gen.go -source=$GOFILE
+
 type UserSession struct {
 	Token        string
 	RefreshToken string
@@ -20,7 +22,6 @@ type IdentityGenerator interface {
 	ValidateToken(t string) error
 }
 
-// todo: get this from env
 type Config struct {
 	TokenSecret []byte
 }

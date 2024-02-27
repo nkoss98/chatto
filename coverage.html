@@ -1,0 +1,607 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>internal: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">scratch/internal/account.go (73.0%)</option>
+				
+				<option value="file1">scratch/internal/authorization/middlewares/auth.go (64.7%)</option>
+				
+				<option value="file2">scratch/internal/authorization/middlewares/custom.go (0.0%)</option>
+				
+				<option value="file3">scratch/internal/authorization/session/session.gen.go (0.0%)</option>
+				
+				<option value="file4">scratch/internal/authorization/session/session.go (31.8%)</option>
+				
+				<option value="file5">scratch/internal/services/user.go (73.7%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package internal
+
+import (
+        "encoding/json"
+        "errors"
+        "log/slog"
+        "net/http"
+        "scratch/api"
+        userManager "scratch/internal/services"
+)
+
+var _ api.ServerInterface = (*accountHandler)(nil)
+
+type accountHandler struct {
+        am  userManager.AccountManager
+        log slog.Logger
+}
+
+func NewAccountHandler(am userManager.AccountManager, log slog.Logger) *accountHandler <span class="cov8" title="1">{
+        return &amp;accountHandler{am: am, log: log}
+}</span>
+
+func (ah *accountHandler) PostRegister(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        ctx := r.Context()
+        var request api.RegisterUserRequest
+        err := json.NewDecoder(r.Body).Decode(&amp;request)
+        if err != nil </span><span class="cov0" title="0">{
+                ah.writeJSON(w, http.StatusBadRequest, "can not create user account")
+                return
+        }</span>
+
+        <span class="cov8" title="1">id, err := ah.am.CreateUser(ctx, request)
+        if err != nil </span><span class="cov8" title="1">{
+                switch </span>{
+                case errors.Is(err, userManager.UserExistErr):<span class="cov8" title="1">
+                        ah.writeJSON(w, http.StatusConflict, api.ErrorResponse{Error: "user with that email already exists"})
+                        return</span>
+                default:<span class="cov0" title="0">
+                        ah.writeJSON(w, http.StatusInternalServerError, api.ErrorResponse{Error: "Internal server error"})
+                        return</span>
+                }
+        }
+        <span class="cov8" title="1">responseBody := struct {
+                Id int `json:"id"`
+        }{
+                Id: id,
+        }
+
+        ah.writeJSON(w, http.StatusCreated, responseBody)
+        return</span>
+}
+
+func (ah *accountHandler) GetUserId(w http.ResponseWriter, r *http.Request, id int) <span class="cov0" title="0">{
+        //TODO implement me
+        panic("implement me")</span>
+}
+
+func (ah *accountHandler) PostLogin(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+
+        var body api.PostLoginJSONRequestBody
+
+        err := json.NewDecoder(r.Body).Decode(&amp;body)
+        if err != nil </span><span class="cov0" title="0">{
+                ah.writeJSON(w, http.StatusBadRequest, api.ErrorResponse{Error: "decode request error"})
+                return
+        }</span>
+        <span class="cov8" title="1">response, err := ah.am.Login(r.Context(), body)
+        if err != nil </span><span class="cov8" title="1">{
+                switch </span>{
+                case errors.Is(err, userManager.UserNotFoundErr):<span class="cov8" title="1">
+                        ah.writeJSON(w, http.StatusNotFound, api.ErrorResponse{Error: "user not found"})
+                        return</span>
+                case errors.Is(err, userManager.IncorrectPasswordErr):<span class="cov8" title="1">
+                        ah.writeJSON(w, http.StatusBadRequest, api.ErrorResponse{Error: "incorrect credentials"})</span>
+                default:<span class="cov0" title="0">
+                        ah.writeJSON(w, http.StatusInternalServerError, api.ErrorResponse{Error: "internal server error"})
+                        return</span>
+                }
+        }
+        <span class="cov8" title="1">ah.writeJSON(w, http.StatusOK, response)</span>
+}
+
+func (ah *accountHandler) writeJSON(w http.ResponseWriter, code int, data any) <span class="cov8" title="1">{
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(code)
+
+        err := json.NewEncoder(w).Encode(data)
+        if err != nil </span><span class="cov0" title="0">{
+                ah.log.Warn("encode response: %w", err)
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package middlewares
+
+import (
+        "net/http"
+        "scratch/internal/authorization/session"
+        "strings"
+)
+
+// TODO: testy gdzie wrzucone fakowy struct niby ze validator ale nie
+
+func AuthMiddleware(next http.Handler) http.Handler <span class="cov8" title="1">{
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov8" title="1">{
+                h := r.Header.Get("Authorization")
+                if h == "" </span><span class="cov8" title="1">{
+                        w.WriteHeader(403)
+                        next.ServeHTTP(w, r)
+                        return
+                }</span>
+                <span class="cov8" title="1">token := strings.Split(h, " ")
+
+                v := session.NewJsonWebToken(session.Config{
+                        TokenSecret: []byte("YELLOW SUBMARINE, BLACK WIZARDRY"),
+                })
+
+                if len(token) &gt; 1 &amp;&amp; token[1] != "" </span><span class="cov0" title="0">{
+                        err := v.ValidateToken(token[1])
+                        if err != nil </span><span class="cov0" title="0">{
+                                w.WriteHeader(403)
+                                next.ServeHTTP(w, r)
+                                return
+                        }</span>
+                        <span class="cov0" title="0">next.ServeHTTP(w, r)</span>
+                }
+                <span class="cov8" title="1">w.WriteHeader(403)
+                next.ServeHTTP(w, r)</span>
+        })
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package middlewares
+
+import (
+        "context"
+        "net/http"
+)
+
+func customMiddleware(next http.Handler) http.Handler <span class="cov0" title="0">{
+        return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) </span><span class="cov0" title="0">{
+                ctx := context.WithValue(request.Context(), "services", "poka cyce")
+
+                next.ServeHTTP(writer, request.WithContext(ctx))
+        }</span>)
+
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">// Code generated by MockGen. DO NOT EDIT.
+// Source: session.go
+
+// Package session is a generated GoMock package.
+package session
+
+import (
+        reflect "reflect"
+
+        gomock "github.com/golang/mock/gomock"
+)
+
+// MockIdentityGenerator is a mock of IdentityGenerator interface.
+type MockIdentityGenerator struct {
+        ctrl     *gomock.Controller
+        recorder *MockIdentityGeneratorMockRecorder
+}
+
+// MockIdentityGeneratorMockRecorder is the mock recorder for MockIdentityGenerator.
+type MockIdentityGeneratorMockRecorder struct {
+        mock *MockIdentityGenerator
+}
+
+// NewMockIdentityGenerator creates a new mock instance.
+func NewMockIdentityGenerator(ctrl *gomock.Controller) *MockIdentityGenerator <span class="cov0" title="0">{
+        mock := &amp;MockIdentityGenerator{ctrl: ctrl}
+        mock.recorder = &amp;MockIdentityGeneratorMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIdentityGenerator) EXPECT() *MockIdentityGeneratorMockRecorder <span class="cov0" title="0">{
+        return m.recorder
+}</span>
+
+// GenerateTokens mocks base method.
+func (m *MockIdentityGenerator) GenerateTokens(userID string) (UserSession, error) <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "GenerateTokens", userID)
+        ret0, _ := ret[0].(UserSession)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// GenerateTokens indicates an expected call of GenerateTokens.
+func (mr *MockIdentityGeneratorMockRecorder) GenerateTokens(userID interface{}) *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateTokens", reflect.TypeOf((*MockIdentityGenerator)(nil).GenerateTokens), userID)
+}</span>
+
+// ValidateToken mocks base method.
+func (m *MockIdentityGenerator) ValidateToken(t string) error <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "ValidateToken", t)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// ValidateToken indicates an expected call of ValidateToken.
+func (mr *MockIdentityGeneratorMockRecorder) ValidateToken(t interface{}) *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateToken", reflect.TypeOf((*MockIdentityGenerator)(nil).ValidateToken), t)
+}</span>
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package session
+
+import (
+        "errors"
+        "fmt"
+        "time"
+
+        jwt "github.com/golang-jwt/jwt/v5"
+        "github.com/o1egl/paseto"
+        "golang.org/x/crypto/chacha20poly1305"
+)
+
+//go:generate mockgen -package=session -destination=session.gen.go -source=$GOFILE
+
+type UserSession struct {
+        Token        string
+        RefreshToken string
+}
+
+type IdentityGenerator interface {
+        GenerateTokens(userID string) (UserSession, error)
+        ValidateToken(t string) error
+}
+
+type Config struct {
+        TokenSecret []byte
+}
+
+type jwtTokenManager struct {
+        config Config
+}
+
+func NewJsonWebToken(config Config) *jwtTokenManager <span class="cov8" title="1">{
+        return &amp;jwtTokenManager{config: config}
+}</span>
+
+type pasetoTokenManager struct {
+        config Config
+}
+
+func NewPasetoTokenManager(config Config) *pasetoTokenManager <span class="cov0" title="0">{
+        return &amp;pasetoTokenManager{config: config}
+}</span>
+
+func (p pasetoTokenManager) GenerateTokens(userID string) (UserSession, error) <span class="cov0" title="0">{
+        if len(p.config.TokenSecret) != chacha20poly1305.KeySize </span><span class="cov0" title="0">{
+                return UserSession{}, nil
+        }</span>
+        <span class="cov0" title="0">now := time.Now()
+        exp := now.Add(24 * time.Hour)
+        nbt := now
+
+        jsonToken := paseto.JSONToken{
+                Audience:   "test",
+                Issuer:     "test_service",
+                Jti:        "123",
+                Subject:    "test_subject",
+                IssuedAt:   now,
+                Expiration: exp,
+                NotBefore:  nbt,
+        }
+
+        // Encrypt data
+        v2 := paseto.NewV2()
+        token, err := v2.Encrypt(p.config.TokenSecret, jsonToken, nil)
+        if err != nil </span><span class="cov0" title="0">{
+                return UserSession{}, fmt.Errorf("encrypt token: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">jsonRefreshToken := paseto.JSONToken{
+                Audience:   "test",
+                Issuer:     "test_service",
+                Jti:        "123",
+                Subject:    "test_subject",
+                IssuedAt:   now,
+                Expiration: time.Now().Add(24 * time.Hour),
+                NotBefore:  time.Now().Add(24 * time.Hour),
+        }
+
+        refreshToken, err := v2.Encrypt(p.config.TokenSecret, jsonRefreshToken, nil)
+        if err != nil </span><span class="cov0" title="0">{
+                return UserSession{}, fmt.Errorf("encrypt token: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return UserSession{
+                Token:        token,
+                RefreshToken: refreshToken,
+        }, nil</span>
+
+}
+
+func (p pasetoTokenManager) ValidateToken(token string) error <span class="cov0" title="0">{
+        v2 := paseto.NewV2()
+        var newJsonToken paseto.JSONToken
+
+        err := v2.Decrypt(token, p.config.TokenSecret, &amp;newJsonToken, nil)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("decrypt token: %w", err)
+        }</span>
+        <span class="cov0" title="0">err = newJsonToken.Validate()
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("invalid token due to: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (j jwtTokenManager) GenerateTokens(userID string) (UserSession, error) <span class="cov8" title="1">{
+        tokenClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+                "id":  userID,
+                "exp": time.Now().Add(1 * time.Hour).Unix(),
+                "iat": time.Now().Unix(),
+        })
+
+        token, err := tokenClaims.SignedString(j.config.TokenSecret)
+        if err != nil </span><span class="cov0" title="0">{
+                return UserSession{}, fmt.Errorf("problem to sign token: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">refreshTokenClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+                "id":  userID,
+                "exp": time.Now().Add(24 * time.Hour).Unix(),
+                "iat": time.Now().Unix(),
+        })
+
+        refreshToken, err := refreshTokenClaims.SignedString(j.config.TokenSecret)
+        if err != nil </span><span class="cov0" title="0">{
+                return UserSession{}, fmt.Errorf("problem to sign token: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">return UserSession{
+                Token:        token,
+                RefreshToken: refreshToken,
+        }, nil</span>
+}
+
+func (j jwtTokenManager) ValidateToken(t string) error <span class="cov8" title="1">{
+        token, err := jwt.Parse(t, func(token *jwt.Token) (interface{}, error) </span><span class="cov8" title="1">{
+                if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok </span><span class="cov0" title="0">{
+                        return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+                }</span>
+
+                <span class="cov8" title="1">return j.config.TokenSecret, nil</span>
+        })
+        <span class="cov8" title="1">if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("validate token err: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">if _, ok := token.Claims.(jwt.MapClaims); ok &amp;&amp; token.Valid </span><span class="cov8" title="1">{
+                return nil
+        }</span>
+
+        <span class="cov0" title="0">return errors.New("token is not valid - expired")</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package services
+
+import (
+        "context"
+        "database/sql"
+        "errors"
+        "fmt"
+        "log/slog"
+        "scratch/api"
+        "scratch/internal/authorization/session"
+        db "scratch/internal/storage/database"
+        "strconv"
+
+        "golang.org/x/crypto/bcrypt"
+)
+
+var (
+        UserNotFoundErr      = errors.New("user not found")
+        UserExistErr         = errors.New("user with that email already exist")
+        IncorrectPasswordErr = errors.New("incorrect credentials")
+)
+
+type AccountManager interface {
+        CreateUser(ctx context.Context, model api.RegisterUserRequest) (int, error)
+        Login(ctx context.Context, model api.LoginUserRequest) (api.LoginUserResponse, error)
+        GetUser(ctx context.Context, id int) (api.GetUserResponse, error)
+        CleanUserTable(ctx context.Context) error
+        MigrationMessage(ctx context.Context) (string, error)
+}
+
+// AccountService is responsible for handling account creation, login and sessions.
+type AccountService struct {
+        db         db.Querier
+        tokenMaker session.IdentityGenerator
+        logger     slog.Logger
+}
+
+func NewAccountService(db db.Querier, tokenGenerator session.IdentityGenerator, logger slog.Logger) *AccountService <span class="cov8" title="1">{
+        return &amp;AccountService{db: db, tokenMaker: tokenGenerator, logger: logger}
+}</span>
+
+func (a *AccountService) CreateUser(ctx context.Context, model api.RegisterUserRequest) (int, error) <span class="cov8" title="1">{
+        isExist, err := a.isUserExist(ctx, model.Email)
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, fmt.Errorf("find user by email: %w", err)
+        }</span>
+        <span class="cov8" title="1">if isExist </span><span class="cov8" title="1">{
+                return 0, UserExistErr
+        }</span>
+
+        <span class="cov8" title="1">pwd, err := a.hashAndSalt([]byte(model.Password))
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, fmt.Errorf("problem to hash password: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">user, err := a.db.CreateUser(ctx, db.CreateUserParams{
+                Name:     model.Name,
+                Email:    model.Email,
+                Password: pwd,
+        })
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, fmt.Errorf("create user: %w", err)
+        }</span>
+        <span class="cov8" title="1">return int(user.ID), nil</span>
+}
+
+func (a *AccountService) Login(ctx context.Context, model api.LoginUserRequest) (api.LoginUserResponse, error) <span class="cov8" title="1">{
+        user, err := a.db.GetUserByEmail(ctx, model.Email)
+        if err != nil </span><span class="cov8" title="1">{
+                if errors.Is(err, sql.ErrNoRows) </span><span class="cov8" title="1">{
+                        return api.LoginUserResponse{}, fmt.Errorf("login user: %w", UserNotFoundErr)
+                }</span>
+                <span class="cov8" title="1">return api.LoginUserResponse{}, fmt.Errorf("login: %w", err)</span>
+        }
+        <span class="cov8" title="1">err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(model.Password))
+        if err != nil </span><span class="cov0" title="0">{
+                return api.LoginUserResponse{}, IncorrectPasswordErr
+        }</span>
+
+        <span class="cov8" title="1">session, err := a.tokenMaker.GenerateTokens(strconv.Itoa(int(user.ID)))
+        if err != nil </span><span class="cov0" title="0">{
+                return api.LoginUserResponse{}, fmt.Errorf("generate token: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">return api.LoginUserResponse{
+                Token:        session.Token,
+                RefreshToken: session.RefreshToken,
+        }, nil</span>
+}
+
+func (a *AccountService) GetUser(ctx context.Context, id int) (api.GetUserResponse, error) <span class="cov0" title="0">{
+        // add midelware here
+        return api.GetUserResponse{}, nil
+}</span>
+
+func (a *AccountService) CleanUserTable(ctx context.Context) error <span class="cov0" title="0">{
+        return a.db.CleanUserTable(ctx)
+}</span>
+
+func (a *AccountService) MigrationMessage(ctx context.Context) (string, error) <span class="cov0" title="0">{
+        return a.db.MigrationMessage(ctx)
+
+}</span>
+
+func (a *AccountService) hashAndSalt(pwd []byte) (string, error) <span class="cov8" title="1">{
+        hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+
+        <span class="cov8" title="1">return string(hash), nil</span>
+}
+
+func (a *AccountService) isUserExist(ctx context.Context, email string) (bool, error) <span class="cov8" title="1">{
+        _, err := a.db.GetUserByEmail(ctx, email)
+        if err != nil </span><span class="cov8" title="1">{
+                if errors.Is(err, sql.ErrNoRows) </span><span class="cov8" title="1">{
+                        return false, nil
+                }</span>
+                <span class="cov0" title="0">return false, fmt.Errorf("can not get user by email: %w", err)</span>
+        }
+
+        <span class="cov8" title="1">return true, nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

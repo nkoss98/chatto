@@ -13,6 +13,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		h := r.Header.Get("Authorization")
 		if h == "" {
 			w.WriteHeader(403)
+			next.ServeHTTP(w, r)
 			return
 		}
 		token := strings.Split(h, " ")
@@ -25,10 +26,12 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			err := v.ValidateToken(token[1])
 			if err != nil {
 				w.WriteHeader(403)
+				next.ServeHTTP(w, r)
 				return
 			}
 			next.ServeHTTP(w, r)
 		}
 		w.WriteHeader(403)
+		next.ServeHTTP(w, r)
 	})
 }

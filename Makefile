@@ -13,3 +13,16 @@ add-migration:
 .PHONY: gen-sqlc
 gen-sqlc:
 	sqlc generate
+
+.PHONY: install-tools
+install-tools:
+	go install github.com/golang/mock/mockgen@v1.6.0
+
+.PHONY: gen-mocks
+gen-mocks:
+	mockgen -source internal/storage/database/querier.go -destination internal/storage/database/mock/querier.go -package db
+
+.PHONY: test-coverage
+test-coverage:
+	go test ./... -coverprofile=c.out
+	go tool cover -html=c.out -o coverage.html

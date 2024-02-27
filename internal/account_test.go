@@ -32,8 +32,9 @@ func Test_accountHandler_PostRegister(t *testing.T) {
 			client := srv.Client()
 			tt.prepareDB(t)
 
-			req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, fmt.Sprintf("%v/register", srv.URL), strings.NewReader(`{
-   			 	 "email" :"norbi1@wp.pl",
+			req, err := http.NewRequestWithContext(context.Background(), http.MethodPost,
+				fmt.Sprintf("%v/register", srv.URL), strings.NewReader(`{
+   			 	 "email" :"norbi12@wp.pl",
     			 "name":"Konu33",
     			 "password":"Test123!"}`))
 			assert.NoError(t, err)
@@ -49,7 +50,6 @@ func Test_accountHandler_PostRegister(t *testing.T) {
 	}
 
 	t.Run("success - register as user", scenario(testArgs{
-
 		prepareDB: func(t *testing.T) {
 			// nothing to do
 		},
@@ -103,7 +103,7 @@ func Test_accountHandler_PostLogin(t *testing.T) {
 	}{
 		{
 			name:               "success login",
-			requestBody:        `{"email":"norbi@wp.pl", "password":"Test123!"}`,
+			requestBody:        `{"email":"norbi22@wp.pl", "password":"Test123!"}`,
 			wantResponseStatus: 200,
 			prepareDB: func(t *testing.T) {
 				t.Helper()
@@ -113,7 +113,7 @@ func Test_accountHandler_PostLogin(t *testing.T) {
 				ctrl := services.NewAccountService(storage.New(db), tokenMaker, slog.Logger{})
 
 				_, err := ctrl.CreateUser(context.Background(), api.RegisterUserRequest{
-					Email:    "norbi@wp.pl",
+					Email:    "norbi22@wp.pl",
 					Name:     "konu33",
 					Password: "Test123!",
 				})
@@ -130,7 +130,7 @@ func Test_accountHandler_PostLogin(t *testing.T) {
 		},
 		{
 			name:               "no user with that email - 404",
-			requestBody:        `{"email":"norbi@wp.pl", "password":"Test123!"}`,
+			requestBody:        `{"email":"norbi33@wp.pl", "password":"Test123!"}`,
 			wantResponseStatus: http.StatusNotFound,
 			prepareDB: func(t *testing.T) {
 				t.Helper()

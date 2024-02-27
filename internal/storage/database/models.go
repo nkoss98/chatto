@@ -6,6 +6,10 @@ package db
 
 import ()
 
+type InitialMigration struct {
+	Message string
+}
+
 type ScratchSession struct {
 	ID           int32
 	UserID       int32

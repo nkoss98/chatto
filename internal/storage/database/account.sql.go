@@ -9,6 +9,15 @@ import (
 	"context"
 )
 
+const cleanUserTable = `-- name: CleanUserTable :exec
+DELETE FROM scratch.user
+`
+
+func (q *Queries) CleanUserTable(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, cleanUserTable)
+	return err
+}
+
 const createSession = `-- name: CreateSession :exec
 INSERT INTO scratch.session (user_id, refresh_token, login_date) VALUES ($1, $2, $3)
 `

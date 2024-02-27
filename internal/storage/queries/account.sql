@@ -12,4 +12,7 @@ INSERT INTO scratch.session (user_id, refresh_token, login_date) VALUES ($1, $2,
 -- name: GetSession :one
 SELECT * FROM scratch.session WHERE refresh_token = $1 AND user_id = $2;
 
--- tutaj left join jakis zeby zajebac usera z sesja i essa
+-- name: CleanUserTable :exec
+DELETE FROM scratch.user;
+
+-- tutaj left join jakis zeby wziac usera z sesja i essa

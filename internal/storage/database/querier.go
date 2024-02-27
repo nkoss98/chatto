@@ -9,10 +9,12 @@ import (
 )
 
 type Querier interface {
+	CleanUserTable(ctx context.Context) error
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (ScratchUser, error)
 	GetSession(ctx context.Context, arg GetSessionParams) (ScratchSession, error)
 	GetUserByEmail(ctx context.Context, email string) (ScratchUser, error)
+	MigrationMessage(ctx context.Context) (string, error)
 }
 
 var _ Querier = (*Queries)(nil)

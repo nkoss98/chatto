@@ -24,6 +24,8 @@ type AccountManager interface {
 	CreateUser(ctx context.Context, model api.RegisterUserRequest) (int, error)
 	Login(ctx context.Context, model api.LoginUserRequest) (api.LoginUserResponse, error)
 	GetUser(ctx context.Context, id int) (api.GetUserResponse, error)
+	CleanUserTable(ctx context.Context) error
+	MigrationMessage(ctx context.Context) (string, error)
 }
 
 // AccountService is responsible for handling account creation, login and sessions.
@@ -74,7 +76,6 @@ func (a *AccountService) Login(ctx context.Context, model api.LoginUserRequest) 
 	if err != nil {
 		return api.LoginUserResponse{}, IncorrectPasswordErr
 	}
-	fmt.Printf("%v", strconv.Itoa(int(user.ID)))
 
 	session, err := a.tokenMaker.GenerateTokens(strconv.Itoa(int(user.ID)))
 	if err != nil {
@@ -90,6 +91,15 @@ func (a *AccountService) Login(ctx context.Context, model api.LoginUserRequest) 
 func (a *AccountService) GetUser(ctx context.Context, id int) (api.GetUserResponse, error) {
 	// add midelware here
 	return api.GetUserResponse{}, nil
+}
+
+func (a *AccountService) CleanUserTable(ctx context.Context) error {
+	return a.db.CleanUserTable(ctx)
+}
+
+func (a *AccountService) MigrationMessage(ctx context.Context) (string, error) {
+	return a.db.MigrationMessage(ctx)
+
 }
 
 func (a *AccountService) hashAndSalt(pwd []byte) (string, error) {

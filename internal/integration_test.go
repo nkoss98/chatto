@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"database/sql"
 	"embed"
 	"fmt"
@@ -26,10 +27,9 @@ import (
 
 var (
 	localhost = "localhost"
-	port      = 5432
 	user      = "postgres"
 	password  = "postgres"
-	dbname    = "tests"
+	dbname    = "integration_tests"
 	db        *sql.DB
 )
 
@@ -38,13 +38,13 @@ var embedMigrations embed.FS
 
 func connectPostgres(pool *dockertest.Pool) (*dockertest.Resource, error) {
 	resource, err := pool.Run("postgres", "13.8",
-		[]string{"POSTGRES_DB=tests", "POSTGRES_PASSWORD=postgres"})
+		[]string{"POSTGRES_DB=integration_tests", "POSTGRES_PASSWORD=postgres"})
 	if err != nil {
 		return nil, fmt.Errorf("run new pool: %w", err)
 	}
 
 	psqlInfo := fmt.Sprintf("host=%v port=%v user=%v "+
-		"password=%v dbname=%v sslmode=disable default_query_exec_mode=describe_exec",
+		"password=%v dbname=%v sslmode=disable",
 		localhost, resource.GetPort("5432/tcp"), user, password, dbname)
 
 	if err = pool.Retry(func() error {
@@ -75,8 +75,12 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(fmt.Sprintf("connect postgres: %v", err))
 	}
+
+	runUpMigrations()
+
 	code := m.Run()
 
+	runDownMigrations()
 	if err = pool.Purge(resource); err != nil {
 		log.Fatalf("Could not purge resource: %s", err)
 	}
@@ -111,13 +115,10 @@ func testHandler(t *testing.T) http.Handler {
 }
 
 func initService(t *testing.T) *httptest.Server {
-	err := runUpMigrations(db)
-	assert.NoError(t, err)
-
-	t.Cleanup(func() {
-		err = runDownMigrations(db)
-		assert.NoError(t, err)
-	})
+	/*
+		m run odpala testy takze mozna zrobic migracje tylko przed m run
+	*/
+	t.Helper()
 
 	srv := httptest.NewServer(testHandler(t))
 
@@ -128,28 +129,33 @@ func initService(t *testing.T) *httptest.Server {
 	return srv
 }
 
-func runUpMigrations(database *sql.DB) error {
+func runUpMigrations() error {
 	goose.SetBaseFS(embedMigrations)
 
-	if err := goose.SetDialect("postgres"); err != nil {
+	if err := goose.SetDialect("pgx"); err != nil {
 		return fmt.Errorf("goose - set dialect: %w", err)
 	}
 
-	if err := goose.Up(database, "storage/migrations"); err != nil {
+	if err := goose.UpContext(context.Background(), db, "storage/migrations"); err != nil {
 		return fmt.Errorf("run up migrations: %w", err)
 	}
+
+	//message, err := storage.New(db).MigrationMessage(context.Background())
+
 	return nil
 }
 
-func runDownMigrations(database *sql.DB) error {
+func runDownMigrations() error {
+
 	goose.SetBaseFS(embedMigrations)
 
 	if err := goose.SetDialect("postgres"); err != nil {
 		return fmt.Errorf("goose - set dialect: %w", err)
 	}
 
-	if err := goose.DownTo(database, "storage/migrations", 0); err != nil {
+	if err := goose.DownTo(db, "storage/migrations", 0); err != nil {
 		return fmt.Errorf("run up migrations: %w", err)
 	}
+
 	return nil
 }
